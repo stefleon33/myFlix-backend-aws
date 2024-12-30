@@ -50,9 +50,13 @@ const fs = require('fs');
 const fileUpload = require('express-fileupload');
 const path = require('path');
 
+const AWS = require('aws-sdk');
+
 // AWS S3 client configuration
 const s3Client = new S3Client({
-    region: process.env.AWS_REGION || 'us-east-1', 
+    region: process.env.AWS_REGION || 'us-east-1',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, 
 });
 
 // Bucket name 
@@ -400,26 +404,26 @@ app.get('/list-objects', (req, res) => {
 
 // Endpoint to upload an object to the S3 bucket
 app.post('/upload', (req, res) => {
-  console.log(req.files);  // Log the file object to check its structure
+    if (!req.files || !req.files.image) {
+        return res.status(400).send('No file uploaded');
+    }
 
-  const file = req.files.image;  // Get the uploaded file from the request
-  const fileName = req.files.image.name;
-  
-  const uploadParams = {
-    Bucket: BUCKET_NAME,
-    Key: `uploads/${fileName}`, // This will be the key for the uploaded file in S3
-    Body: file.data, // Upload the file content
-    ContentType: file.mimetype,
-  };
+    const file = req.files.image;
+    const fileName = file.name;
 
-  s3Client.send(new PutObjectCommand(uploadParams))
-    .then(() => {
-      res.json({ message: 'File uploaded successfully!' });
-    })
-    .catch((error) => {
-      console.error('Error uploading file:', error);
-      res.status(500).send('Error uploading file');
-    });
+    const uploadParams = {
+        Bucket: BUCKET_NAME,
+        Key: `uploads/${fileName}`,
+        Body: file.data,
+        ContentType: file.mimetype,
+    };
+
+    s3Client.send(new PutObjectCommand(uploadParams))
+        .then(() => res.json({ message: 'File uploaded successfully!' }))
+        .catch((error) => {
+            console.error('Upload error:', error);
+            res.status(500).send('Error uploading file');
+        });
 });
 
 // Endpoint to retrieve an object from the S3 bucket
@@ -442,8 +446,12 @@ app.get('/download/:filename', async (req, res) => {
         // Stream the object to the response
         data.Body.pipe(res);
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Error downloading the file');
+        console.error('Download error:', error);
+        if (error.name === 'NoSuchKey') {
+            res.status(404).send('File not found');
+        } else {
+            res.status(500).send('Error downloading the file');
+        }
     }
 });
 
