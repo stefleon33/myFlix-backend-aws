@@ -28,11 +28,15 @@ const express = require('express'),
   app = express(),
   bodyParser = require('body-parser');
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 const cors = require('cors');
-app.use(cors());
+app.use(cors({
+    origin: '*', // Allows all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allows all standard methods
+    allowedHeaders: ['*'] // Allows all headers
+}));
 
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
