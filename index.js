@@ -539,7 +539,7 @@ exports.handler = async (event) => {
  * @param {number} port - The port number to run the server on.
  * @returns {void} Logs a message indicating the server is running.
  */
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 app.listen(port, '0.0.0.0',() => {
  console.log('Listening on Port ' + port);
 });
