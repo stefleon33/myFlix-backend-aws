@@ -397,6 +397,7 @@ app.get('/movies/director/:directorName', passport.authenticate('jwt', { session
 
 // Endpoint to list all objects in the S3 bucket
 app.get('/list-objects', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
     const listObjectsParams = {
         Bucket: BUCKET_NAME,
         Prefix: 'original-images/',
@@ -414,6 +415,7 @@ app.get('/list-objects', (req, res) => {
 
 // Endpoint to upload an object to the S3 bucket
 app.post('/upload', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
     if (!req.files || !req.files.image) {
         return res.status(400).send('No file uploaded');
     }
