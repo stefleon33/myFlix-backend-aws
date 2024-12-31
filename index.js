@@ -12,6 +12,8 @@ const Movies = Models.Movie;
 const Users = Models.User;
 
 console.log("Mongo URI from .env file:", process.env.CONNECTION_URI); // Log the value of CONNECTION_URI
+console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
 
 if (!process.env.CONNECTION_URI) {
     console.error("Error: CONNECTION_URI is not set in the .env file");
@@ -31,6 +33,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const cors = require('cors');
 app.use(cors());
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 let auth = require('./auth')(app);
 
@@ -86,6 +92,10 @@ const streamToBuffer = async (stream) => {
         stream.on("error", (err) => reject(err));
     });
 };
+
+app.get('/', (req, res) => {
+  res.status(200).send('Welcome to the Node.js application!');
+});
 
 /**
  * @namespace UserRoutes
@@ -389,7 +399,7 @@ app.get('/movies/director/:directorName', passport.authenticate('jwt', { session
 app.get('/list-objects', (req, res) => {
     const listObjectsParams = {
         Bucket: BUCKET_NAME,
-        Prefix: 'uploads/',
+        Prefix: 'original-images/',
     };
 
     s3Client.send(new ListObjectsV2Command(listObjectsParams)).then(
@@ -409,11 +419,17 @@ app.post('/upload', (req, res) => {
     }
 
     const file = req.files.image;
-    const fileName = file.name;
+    const fileName = encodeURIComponent(file.name);
+
+    // Validate image type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.mimetype)) {
+        return res.status(400).send('Invalid file type');
+    }
 
     const uploadParams = {
         Bucket: BUCKET_NAME,
-        Key: `uploads/${fileName}`,
+        Key: `original-images/${fileName}`,
         Body: file.data,
         ContentType: file.mimetype,
     };
@@ -433,7 +449,7 @@ app.get('/download/:filename', async (req, res) => {
     
     const downloadParams = {
         Bucket: BUCKET_NAME,
-        Key: `uploads/${filename}`
+        Key: `original-images/${filename}`
     };
 
     try {
